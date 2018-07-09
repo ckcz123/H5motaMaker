@@ -3,7 +3,6 @@ package com.ckcz123.h5mota.maker;
 import android.Manifest;
 import android.app.DownloadManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -14,12 +13,9 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
 import com.ckcz123.h5mota.maker.lib.CustomToast;
@@ -27,12 +23,10 @@ import com.ckcz123.h5mota.maker.lib.HttpRequest;
 import com.ckcz123.h5mota.maker.lib.MyWebServer;
 import com.ckcz123.h5mota.maker.lib.Utils;
 import com.tencent.smtt.sdk.QbSdk;
-import com.tencent.smtt.sdk.URLUtil;
 
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     SimpleWebServer simpleWebServer;
     public String workingDirectory;
     public File makerDir;
+    public File templateDir;
     private ListView listView;
     private List<String> items;
     private String templateVersion;
@@ -63,43 +58,67 @@ public class MainActivity extends AppCompatActivity {
 
         listView = findViewById(R.id.listView);
         listView.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, items));
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                try {
-                    String name = items.get(i);
-                    Intent intent=new Intent(MainActivity.this, TBSActivity.class);
-                    intent.putExtra("title", name);
-                    intent.putExtra("url", "http://127.0.0.1:1055/"+ URLEncoder.encode(name, "utf-8")+"/editor-mobile.html");
-                    workingDirectory = name;
-                    startActivity(intent);
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
+        listView.setOnItemClickListener((adapterView, view, i, l) -> {
+            try {
+                String name = items.get(i);
+                Intent intent=new Intent(MainActivity.this, TBSActivity.class);
+                intent.putExtra("title", name);
+                intent.putExtra("url", "http://127.0.0.1:1055/"+ URLEncoder.encode(name, "utf-8")+"/editor-mobile.html");
+                workingDirectory = name;
+                startActivity(intent);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
             }
         });
-        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
-                try {
-                    String name = items.get(i);
-                    new AlertDialog.Builder(MainActivity.this).setMessage("提示")
-                            .setMessage("确定要删除"+name+"么？")
-                            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialogInterface, int i) {
-                                    Utils.deleteFile(new File(makerDir, name));
+        listView.setOnItemLongClickListener((adapterView, view, i, l) -> {
+            String name = items.get(i);
+            File file = new File(makerDir, name);
+            new AlertDialog.Builder(MainActivity.this)
+                .setItems(new String[]{"打开目录", "重命名项目", "删除项目"}, (dialogInterface, i1) -> {
+                    try {
+                        if (i1 ==0) {
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
+                            if (intent.resolveActivityInfo(getPackageManager(), 0) != null)
+                                startActivity(intent);
+                            else CustomToast.showErrorToast(MainActivity.this, "无法打开目录");
+                        }
+                        else if (i1 ==1) {
+                            final EditText editText = new EditText(MainActivity.this);
+                            editText.setText(name);
+                            new AlertDialog.Builder(MainActivity.this).setTitle("重命名项目")
+                                .setCancelable(true).setView(editText)
+                                .setPositiveButton("确定", (dialogInterface1, i11) -> {
+                                    String content = editText.getEditableText().toString();
+                                    if (content.isEmpty()) return;
+                                    File to = new File(makerDir, content);
+                                    if (to.exists())
+                                        CustomToast.showErrorToast(MainActivity.this, content+"已存在！");
+                                    else if (file.renameTo(to)) {
+                                        CustomToast.showSuccessToast(MainActivity.this, "重命名成功！");
+                                        updateItems();
+                                    }
+                                    else
+                                        CustomToast.showErrorToast(MainActivity.this, "无法重命名项目");
+                                }).setNegativeButton("取消", null).create().show();
+                        }
+                        else if (i1 ==2) {
+                            new AlertDialog.Builder(MainActivity.this).setTitle("提示")
+                                .setMessage("确定要删除项目"+name+"么？").setCancelable(true)
+                                .setPositiveButton("确定", (dialogInterface12, i112) -> {
+                                    Utils.deleteFile(file);
                                     CustomToast.showSuccessToast(MainActivity.this, "删除成功！");
                                     updateItems();
-                                }
-                            }).setNegativeButton("取消", null).create().show();
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return true;
-            }
+                                }).setNegativeButton("取消", null).create().show();
+                        }
+                    }
+                    catch (Exception e) {
+                        e.printStackTrace();
+                        CustomToast.showErrorToast(MainActivity.this, e.getMessage());
+                    }
+                }).setCancelable(true).create().show();
+            return true;
         });
 
         List<PermissionItem> list=new ArrayList<>();
@@ -143,49 +162,40 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    HttpRequest httpRequest=HttpRequest.get(DOMAIN+"/games/_client/")
-                            .followRedirects(true).useCaches(false);
-                    String s=httpRequest.body();
-                    httpRequest.disconnect();
-                    JSONObject jsonObject=new JSONObject(s);
-                    final JSONObject android = jsonObject.getJSONObject("android-maker");
-                    String version = android.getString("version");
-                    if (!version.equals(BuildConfig.VERSION_NAME)) {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    new AlertDialog.Builder(MainActivity.this).setTitle("存在版本更新！")
-                                            .setMessage(android.getString("text")).setCancelable(true)
-                                            .setPositiveButton("下载", new DialogInterface.OnClickListener() {
-                                                @Override
-                                                public void onClick(DialogInterface dialogInterface, int i) {
-                                                    try {
-                                                        Intent intent=new Intent(MainActivity.this, TBSActivity.class);
-                                                        intent.putExtra("title", "版本更新");
-                                                        intent.putExtra("url", android.getString("url"));
-                                                        workingDirectory = null;
-                                                        startActivity(intent);
-                                                    }
-                                                    catch (Exception e) {
-                                                        e.printStackTrace();
-                                                    }
-                                                }
-                                            }).setNegativeButton("取消", null).create().show();
-                                }
-                                catch (Exception e) {e.printStackTrace();}
-                            }
-                        });
-                    }
-                    templateVersion = android.getString("template");
+        new Thread(() -> {
+            try {
+                HttpRequest httpRequest=HttpRequest.get(DOMAIN+"/games/_client/")
+                        .followRedirects(true).useCaches(false);
+                String s=httpRequest.body();
+                httpRequest.disconnect();
+                JSONObject jsonObject=new JSONObject(s);
+                final JSONObject android = jsonObject.getJSONObject("android-maker");
+                String version = android.getString("version");
+                if (!version.equals(BuildConfig.VERSION_NAME)) {
+                    runOnUiThread(() -> {
+                        try {
+                            new AlertDialog.Builder(MainActivity.this).setTitle("存在版本更新！")
+                                .setMessage(android.getString("text")).setCancelable(true)
+                                .setPositiveButton("下载", (dialogInterface, i) -> {
+                                    try {
+                                        Intent intent=new Intent(MainActivity.this, TBSActivity.class);
+                                        intent.putExtra("title", "版本更新");
+                                        intent.putExtra("url", android.getString("url"));
+                                        workingDirectory = null;
+                                        startActivity(intent);
+                                    }
+                                    catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }).setNegativeButton("取消", null).create().show();
+                        }
+                        catch (Exception e) {e.printStackTrace();}
+                    });
                 }
-                catch (Exception e) {
-                    e.printStackTrace();
-                }
+                templateVersion = android.getString("template");
+            }
+            catch (Exception e) {
+                e.printStackTrace();
             }
         }).start();
 
@@ -198,7 +208,9 @@ public class MainActivity extends AppCompatActivity {
             return;
 
         makerDir = new File(Environment.getExternalStorageDirectory()+"/H5motaMaker/");
-        new File(makerDir, ".templates").mkdirs();
+        templateDir = new File(makerDir, ".templates");
+        if (!templateDir.exists() && !templateDir.mkdirs())
+            CustomToast.showErrorToast(this, "无法创建目录");
 
         try {
             if (simpleWebServer!=null) {
@@ -280,13 +292,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void createNewProject() {
-        if (!HiPermission.checkPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+        if (!HiPermission.checkPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                || templateDir == null || !templateDir.exists()) {
             showError("你没有SD卡的权限！");
             return;
         }
-
-        File templateDir = new File(makerDir, ".templates");
-        if (!templateDir.exists()) templateDir.mkdirs();
 
         String currVersion = null;
         File[] files = templateDir.listFiles((file, s) -> s.endsWith(".zip"));
@@ -302,10 +312,9 @@ public class MainActivity extends AppCompatActivity {
         final File zipFile = new File(templateDir, templateVersion);
         if (!zipFile.exists()) {
             new AlertDialog.Builder(this).setTitle("错误")
-                    .setMessage("你当前的模板不是最新版本("+templateVersion.split("\\.")[0]+")，点击确定下载最新的模板才能新建项目。")
-                    .setCancelable(true).setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
+                .setMessage("你当前的模板不是最新版本("+templateVersion.split("\\.")[0]+")，点击确定下载最新的模板才能新建项目。")
+                .setCancelable(true).setPositiveButton("确定", (dialogInterface, i) -> {
+
                     DownloadManager.Request request = new DownloadManager.Request(Uri.parse(DOMAIN+"/games/_client/"+templateVersion));
 
                     request.allowScanningByMediaScanner();
@@ -313,36 +322,35 @@ public class MainActivity extends AppCompatActivity {
                     request.setDestinationUri(Uri.fromFile(zipFile));
                     request.setTitle("正在下载" + templateVersion + "...");
                     DownloadManager downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-                    downloadManager.enqueue(request);
+                    if (downloadManager!=null) {
+                        downloadManager.enqueue(request);
+                        CustomToast.showInfoToast(MainActivity.this, "文件下载中，请在通知栏查看进度");
+                    }
+                    else CustomToast.showErrorToast(MainActivity.this, "无法下载文件");
 
-                    CustomToast.showInfoToast(MainActivity.this, "文件下载中，请在通知栏查看进度");
-                }
-            }).setNegativeButton("取消", null).create().show();
+                }).setNegativeButton("取消", null).create().show();
             return;
         }
 
         final EditText editText = new EditText(this);
         editText.setHint("请输入塔名...");
         new AlertDialog.Builder(this).setTitle("创建新塔")
-                .setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
+            .setView(editText).setPositiveButton("确定", (dialogInterface, i) -> {
                 String content = editText.getEditableText().toString();
+                if (content.isEmpty()) return;
                 File destination = new File(makerDir, content);
                 if (destination.exists()) {
                     showError("该塔目录已存在！");
                     return;
                 }
-                destination.mkdirs();
-                if (Utils.unzip(zipFile, destination)) {
+                if (destination.mkdirs() && Utils.unzip(zipFile, destination)) {
                     updateItems();
                     CustomToast.showSuccessToast(MainActivity.this, "新塔创建成功！");
                 }
                 else {
                     showError("无法创建新塔");
                 }
-            }
-        }).setNegativeButton("取消", null).setCancelable(true).create().show();
+            }).setNegativeButton("取消", null).setCancelable(true).create().show();
 
     }
 
@@ -356,16 +364,13 @@ public class MainActivity extends AppCompatActivity {
         final EditText editText = new EditText(this);
         editText.setHint("请输入地址...");
         new AlertDialog.Builder(this).setTitle("浏览网页")
-                .setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
+            .setView(editText).setPositiveButton("确定", (dialogInterface, i) -> {
                 Intent intent=new Intent(MainActivity.this, TBSActivity.class);
                 intent.putExtra("title", "浏览网页");
                 intent.putExtra("url", editText.getEditableText().toString());
                 workingDirectory = null;
                 startActivity(intent);
-            }
-        }).setNegativeButton("取消", null).setCancelable(true).create().show();
+            }).setNegativeButton("取消", null).setCancelable(true).create().show();
     }
 
 }

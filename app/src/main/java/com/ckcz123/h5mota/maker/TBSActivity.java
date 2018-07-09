@@ -2,6 +2,7 @@ package com.ckcz123.h5mota.maker;
 
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -11,6 +12,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -25,12 +27,15 @@ import com.tencent.smtt.export.external.interfaces.JsResult;
 import com.tencent.smtt.export.external.interfaces.SslError;
 import com.tencent.smtt.export.external.interfaces.SslErrorHandler;
 import com.tencent.smtt.sdk.DownloadListener;
+import com.tencent.smtt.sdk.MimeTypeMap;
 import com.tencent.smtt.sdk.URLUtil;
 import com.tencent.smtt.sdk.ValueCallback;
 import com.tencent.smtt.sdk.WebChromeClient;
 import com.tencent.smtt.sdk.WebSettings;
 import com.tencent.smtt.sdk.WebView;
 import com.tencent.smtt.sdk.WebViewClient;
+
+import org.apache.commons.io.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -201,35 +206,32 @@ public class TBSActivity extends AppCompatActivity {
 
         });
 
-        webView.setDownloadListener(new DownloadListener() {
-            public void onDownloadStart(String url, String userAgent,
-                                        String contentDisposition, String mimetype, long contentLength) {
-                try {
-                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
+            try {
+                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
 
-                    Log.i("mimetype", mimetype);
+                Log.i("mimetype", mimetype);
 
-                    request.setMimeType(mimetype);
-                    request.allowScanningByMediaScanner();
-                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                    String filename = URLUtil.guessFileName(url, contentDisposition, mimetype);
-                    new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/").mkdirs();
-                    File file = new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/" + filename);
-                    if (file.exists()) file.delete();
-                    request.setDestinationUri(Uri.fromFile(file));
-                    request.setTitle("正在下载" + filename + "...");
-                    request.setDescription("文件保存在" + file.getAbsolutePath());
-                    DownloadManager downloadManager = (DownloadManager) activity.getSystemService(Context.DOWNLOAD_SERVICE);
-                    downloadManager.enqueue(request);
+                request.setMimeType(mimetype);
+                request.allowScanningByMediaScanner();
+                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                String filename = URLUtil.guessFileName(url, contentDisposition, mimetype);
+                new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/").mkdirs();
+                File file = new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/" + filename);
+                if (file.exists()) file.delete();
+                request.setDestinationUri(Uri.fromFile(file));
+                request.setTitle("正在下载" + filename + "...");
+                request.setDescription("文件保存在" + file.getAbsolutePath());
+                DownloadManager downloadManager = (DownloadManager) activity.getSystemService(Context.DOWNLOAD_SERVICE);
+                downloadManager.enqueue(request);
 
-                    CustomToast.showInfoToast(activity, "文件下载中，请在通知栏查看进度");
-                } catch (Exception e) {
-                    if (url.startsWith("blob")) {
-                        CustomToast.showErrorToast(activity, "无法下载文件！");
-                        return;
-                    }
-                    activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                CustomToast.showInfoToast(activity, "文件下载中，请在通知栏查看进度");
+            } catch (Exception e) {
+                if (url.startsWith("blob")) {
+                    CustomToast.showErrorToast(activity, "无法下载文件！");
+                    return;
                 }
+                activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
             }
         });
 
@@ -269,6 +271,21 @@ public class TBSActivity extends AppCompatActivity {
                 case JSINTERFACE_SELECT_FILE:
                     if (result == null) break;
                     Log.i("Path", result.getPath());
+                    ContentResolver contentResolver = getContentResolver();
+                    String type = contentResolver.getType(result);
+                    Log.i("Type", type);
+                    if (type!=null && type.startsWith("image")) {
+                        try (InputStream inputStream = getContentResolver().openInputStream(result)) {
+                            byte[] bytes = IOUtils.toByteArray(inputStream);
+                            String base64 = Base64.encodeToString(bytes, Base64.DEFAULT);
+                            webView.loadUrl("javascript:core.readFileContent('data:"+type+";base64," + base64 +"')");
+                        }
+                        catch (Exception e) {
+                            CustomToast.showErrorToast(this, "读取失败！");
+                            e.printStackTrace();
+                        }
+                        return;
+                    }
                     try (InputStream inputStream = getContentResolver().openInputStream(result);
                          BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                         String line;
@@ -296,14 +313,16 @@ public class TBSActivity extends AppCompatActivity {
 
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
-        menu.add(Menu.NONE, 0, 0, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 0, 0, "").setIcon(android.R.drawable.ic_menu_rotate).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         return true;
     }
 
     public boolean onOptionsItemSelected(MenuItem item) {
         super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
-            case 0: webView.loadUrl("about:blank");finish();break;
+            case 0: webView.reload(); break;
+            case 1: webView.loadUrl("about:blank");finish();break;
         }
         return true;
     }
