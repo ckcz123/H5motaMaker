@@ -20,14 +20,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.ckcz123.h5mota.maker.lib.CustomToast;
 import com.tencent.smtt.export.external.interfaces.JsPromptResult;
 import com.tencent.smtt.export.external.interfaces.JsResult;
 import com.tencent.smtt.export.external.interfaces.SslError;
 import com.tencent.smtt.export.external.interfaces.SslErrorHandler;
-import com.tencent.smtt.sdk.DownloadListener;
-import com.tencent.smtt.sdk.MimeTypeMap;
 import com.tencent.smtt.sdk.URLUtil;
 import com.tencent.smtt.sdk.ValueCallback;
 import com.tencent.smtt.sdk.WebChromeClient;
@@ -238,14 +237,24 @@ public class TBSActivity extends AppCompatActivity {
         webView.loadUrl(getIntent().getStringExtra("url"));
     }
 
+    double exittime=0;
+
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode==KeyEvent.KEYCODE_BACK) {
             if (webView.canGoBack()) {
                 webView.goBack();
             }
             else {
-                webView.loadUrl("about:blank");
-                finish();
+                if (System.currentTimeMillis()-exittime>2000) {
+                    Toast.makeText(this, "再按一遍返回主页面", Toast.LENGTH_SHORT).show();
+                    exittime=System.currentTimeMillis();
+                }
+                else
+                {
+                    exittime=0;
+                    webView.loadUrl("about:blank");
+                    finish();
+                }
             }
             return true;
         }
@@ -314,7 +323,8 @@ public class TBSActivity extends AppCompatActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
         menu.add(Menu.NONE, 0, 0, "").setIcon(android.R.drawable.ic_menu_rotate).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_help).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 2, 2, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         return true;
     }
 
@@ -322,7 +332,8 @@ public class TBSActivity extends AppCompatActivity {
         super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
             case 0: webView.reload(); break;
-            case 1: webView.loadUrl("about:blank");finish();break;
+            case 1: startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://ckcz123.github.io/mota-js/"))); break;
+            case 2: webView.loadUrl("about:blank");finish();break;
         }
         return true;
     }
