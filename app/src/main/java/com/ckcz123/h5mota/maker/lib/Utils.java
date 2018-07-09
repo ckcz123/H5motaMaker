@@ -80,4 +80,14 @@ public class Utils {
         }
     }
 
+    public static void deleteFile(File file) {
+        if (!file.exists()) return;
+        if (file.isDirectory()) {
+            for (File f: file.listFiles()) {
+                deleteFile(f);
+            }
+        }
+        file.delete();
+    }
+
 }

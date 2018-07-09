@@ -33,7 +33,7 @@ public class MyWebServer extends SimpleWebServer{
     @Override
     public Response serve(IHTTPSession session) {
         String path = session.getUri();
-        if (session.getMethod() == Method.POST && path.startsWith("/")) {
+        if (session.getMethod() == Method.POST && path.startsWith("/") && mainActivity.workingDirectory!=null) {
 
             if (path.startsWith("/readFile") || path.startsWith("/writeFile") || path.startsWith("/listFile")) {
                 try {

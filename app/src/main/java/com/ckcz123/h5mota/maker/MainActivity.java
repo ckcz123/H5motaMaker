@@ -79,6 +79,28 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                try {
+                    String name = items.get(i);
+                    new AlertDialog.Builder(MainActivity.this).setMessage("提示")
+                            .setMessage("确定要删除"+name+"么？")
+                            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    Utils.deleteFile(new File(makerDir, name));
+                                    CustomToast.showSuccessToast(MainActivity.this, "删除成功！");
+                                    updateItems();
+                                }
+                            }).setNegativeButton("取消", null).create().show();
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return true;
+            }
+        });
 
         List<PermissionItem> list=new ArrayList<>();
         list.add(new PermissionItem(Manifest.permission.WRITE_EXTERNAL_STORAGE, "存储权限", R.drawable.permission_ic_storage));
@@ -146,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
                                                         Intent intent=new Intent(MainActivity.this, TBSActivity.class);
                                                         intent.putExtra("title", "版本更新");
                                                         intent.putExtra("url", android.getString("url"));
+                                                        workingDirectory = null;
                                                         startActivity(intent);
                                                     }
                                                     catch (Exception e) {
@@ -242,6 +265,8 @@ public class MainActivity extends AppCompatActivity {
         menu.clear();
         menu.add(Menu.NONE, 0, 0, "").setIcon(android.R.drawable.ic_menu_add)
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_set_as)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         return true;
     }
 
@@ -249,6 +274,7 @@ public class MainActivity extends AppCompatActivity {
         super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
             case 0: createNewProject(); break;
+            case 1: inputLink(); break;
         }
         return true;
     }
@@ -324,6 +350,22 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this).setTitle("错误")
                 .setMessage(content)
                 .setCancelable(true).setPositiveButton("确定",null).create().show();
+    }
+
+    private void inputLink() {
+        final EditText editText = new EditText(this);
+        editText.setHint("请输入地址...");
+        new AlertDialog.Builder(this).setTitle("浏览网页")
+                .setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Intent intent=new Intent(MainActivity.this, TBSActivity.class);
+                intent.putExtra("title", "浏览网页");
+                intent.putExtra("url", editText.getEditableText().toString());
+                workingDirectory = null;
+                startActivity(intent);
+            }
+        }).setNegativeButton("取消", null).setCancelable(true).create().show();
     }
 
 }
