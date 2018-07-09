@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".TBSActivity">
+        <activity android:name=".TBSActivity" android:windowSoftInputMode="adjustPan">
         </activity>
         <receiver android:name="com.ckcz123.h5mota.maker.DownloadReceiver" android:exported="true">
             <intent-filter>
