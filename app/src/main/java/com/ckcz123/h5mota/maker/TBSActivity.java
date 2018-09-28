@@ -332,10 +332,24 @@ public class TBSActivity extends AppCompatActivity {
         super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
             case 0: webView.reload(); break;
-            case 1: startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://ckcz123.github.io/mota-js/"))); break;
+            case 1: loadUrl("https://h5mota.com/games/template/docs/", "查看文档"); break;
             case 2: webView.loadUrl("about:blank");finish();break;
         }
         return true;
+    }
+
+    public void loadUrl(String url, String title) {
+        try {
+            Intent intent=new Intent(this, TBSActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+            intent.putExtra("title", title);
+            intent.putExtra("url", url);
+            startActivity(intent);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            CustomToast.showErrorToast(this, "无法打开网页！");
+        }
     }
 
 }

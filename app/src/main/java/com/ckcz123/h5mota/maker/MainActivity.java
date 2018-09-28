@@ -40,6 +40,7 @@ import me.weyye.hipermission.PermissionItem;
 public class MainActivity extends AppCompatActivity {
 
     public static final String DOMAIN = "https://h5mota.com";
+    public static final String LOCAL = "http://127.0.0.1:1056/";
 
     SimpleWebServer simpleWebServer;
     public String workingDirectory;
@@ -61,11 +62,7 @@ public class MainActivity extends AppCompatActivity {
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
             try {
                 String name = items.get(i);
-                Intent intent=new Intent(MainActivity.this, TBSActivity.class);
-                intent.putExtra("title", name);
-                intent.putExtra("url", "http://127.0.0.1:1055/"+ URLEncoder.encode(name, "utf-8")+"/editor-mobile.html");
-                workingDirectory = name;
-                startActivity(intent);
+                loadUrl(LOCAL+ URLEncoder.encode(name, "utf-8")+"/editor-mobile.html", name);
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -216,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
             if (simpleWebServer!=null) {
                 simpleWebServer.stop();
             }
-            simpleWebServer = new MyWebServer(this, "127.0.0.1", 1055, makerDir, true);
+            simpleWebServer = new MyWebServer(this, "127.0.0.1", 1056, makerDir, true);
             simpleWebServer.start();
         }
         catch (Exception e) {
@@ -277,7 +274,9 @@ public class MainActivity extends AppCompatActivity {
         menu.clear();
         menu.add(Menu.NONE, 0, 0, "").setIcon(android.R.drawable.ic_menu_add)
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_set_as)
+        menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_delete)
+                .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 2, 2, "").setIcon(android.R.drawable.ic_menu_set_as)
                 .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         return true;
     }
@@ -286,7 +285,15 @@ public class MainActivity extends AppCompatActivity {
         super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
             case 0: createNewProject(); break;
-            case 1: inputLink(); break;
+            case 1: {
+                File clearFile = new File(makerDir, "clearStorage.html");
+                if (!clearFile.exists()) {
+                    Utils.copyFilesFassets(this, "clearStorage.html", makerDir+"/clearStorage.html");
+                }
+                loadUrl(LOCAL+"clearStorage.html", "垃圾存档清理工具");
+                break;
+            }
+            case 2: inputLink(); break;
         }
         return true;
     }
@@ -311,8 +318,10 @@ public class MainActivity extends AppCompatActivity {
 
         final File zipFile = new File(templateDir, templateVersion);
         if (!zipFile.exists()) {
+            int index = templateVersion.lastIndexOf('.');
+            String versionName = index==-1?templateVersion:templateVersion.substring(0, index);
             new AlertDialog.Builder(this).setTitle("错误")
-                .setMessage("你当前的模板不是最新版本("+templateVersion.split("\\.")[0]+")，点击确定下载最新的模板才能新建项目。")
+                .setMessage("你当前的模板不是最新版本("+versionName+")，点击确定下载最新的模板才能新建项目。")
                 .setCancelable(true).setPositiveButton("确定", (dialogInterface, i) -> {
 
                     DownloadManager.Request request = new DownloadManager.Request(Uri.parse(DOMAIN+"/games/_client/"+templateVersion));
@@ -365,12 +374,28 @@ public class MainActivity extends AppCompatActivity {
         editText.setHint("请输入地址...");
         new AlertDialog.Builder(this).setTitle("浏览网页")
             .setView(editText).setPositiveButton("确定", (dialogInterface, i) -> {
+                String content = editText.getEditableText().toString();
+                if (!content.startsWith("http://") && !content.startsWith("https://"))
+                    content = "http://"+content;
                 Intent intent=new Intent(MainActivity.this, TBSActivity.class);
                 intent.putExtra("title", "浏览网页");
-                intent.putExtra("url", editText.getEditableText().toString());
+                intent.putExtra("url", content);
                 workingDirectory = null;
                 startActivity(intent);
             }).setNegativeButton("取消", null).setCancelable(true).create().show();
+    }
+
+    public void loadUrl(String url, String title) {
+        try {
+            Intent intent=new Intent(MainActivity.this, TBSActivity.class);
+            intent.putExtra("title", title);
+            intent.putExtra("url", url);
+            startActivity(intent);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            CustomToast.showErrorToast(this, "无法打开网页！");
+        }
     }
 
 }
