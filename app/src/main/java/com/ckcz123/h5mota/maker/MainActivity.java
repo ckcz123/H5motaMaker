@@ -62,7 +62,8 @@ public class MainActivity extends AppCompatActivity {
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
             try {
                 String name = items.get(i);
-                loadUrl(LOCAL+ URLEncoder.encode(name, "utf-8")+"/editor-mobile.html", name);
+                workingDirectory = name;
+                loadUrl(LOCAL+URLEncoder.encode(name, "utf-8")+"/editor-mobile.html", name);
             }
             catch (Exception e) {
                 e.printStackTrace();
