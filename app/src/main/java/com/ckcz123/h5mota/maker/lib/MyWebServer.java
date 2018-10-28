@@ -42,58 +42,22 @@ public class MyWebServer extends SimpleWebServer{
                     int length = Integer.parseInt(session.getHeaders().get("content-length"));
                     String content = new String(IOUtils.readFully(session.getInputStream(), length));
                     String[] params = content.split("&");
-                    for (String param: params) {
+                    for (String param : params) {
                         int index = param.indexOf("=");
-                        if (index>=0)
-                            map.put(param.substring(0, index), param.substring(index+1));
+                        if (index >= 0)
+                            map.put(param.substring(0, index), param.substring(index + 1));
                     }
                     if (path.startsWith("/readFile")) return readFile(map);
                     if (path.startsWith("/writeFile")) return writeFile(map);
                     if (path.startsWith("/listFile")) return listFile(map);
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "");
                 }
             }
-
-            try {
-                session.parseBody(new HashMap<String, String>());
-            }
-            catch (ResponseException | IOException e) {
-                Log.e("Parse Body", "error", e);
-            }
-
-            Map<String, List<String>> map = session.getParameters();
-
-            Map<String, String> keyValue = new HashMap<>();
-            for (Map.Entry<String, List<String>> entry: map.entrySet()) {
-                keyValue.put(entry.getKey(), entry.getValue().get(0));
-            }
-
-            try {
-                HttpRequest request = HttpRequest.post(MainActivity.DOMAIN+path)
-                        .acceptJson()
-                        .form(keyValue);
-
-                int code = request.code();
-                String body = request.body(), message = request.message();
-                request.disconnect();
-
-                if (code==200) {
-                    return newFixedLengthResponse(Response.Status.OK, "application/json", body);
-                }
-                else {
-                    return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", message);
-                }
-            }
-            catch (Exception ignore) {}
-
-            return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "");
         }
-        else {
-            return super.serve(session);
-        }
+
+        return super.serve(session);
     }
 
     private Response readFile(HashMap<String, String> map) {

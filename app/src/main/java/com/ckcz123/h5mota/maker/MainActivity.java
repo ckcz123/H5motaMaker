@@ -49,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
     private ListView listView;
     private List<String> items;
     private String templateVersion;
+    private String templateName;
+    private String templateText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!version.equals(BuildConfig.VERSION_NAME)) {
                     runOnUiThread(() -> {
                         try {
-                            new AlertDialog.Builder(MainActivity.this).setTitle("存在版本更新！")
+                            new AlertDialog.Builder(MainActivity.this).setTitle("存在版本"+version+"更新！")
                                 .setMessage(android.getString("text")).setCancelable(true)
                                 .setPositiveButton("下载", (dialogInterface, i) -> {
                                     try {
@@ -190,7 +192,10 @@ public class MainActivity extends AppCompatActivity {
                         catch (Exception e) {e.printStackTrace();}
                     });
                 }
-                templateVersion = android.getString("template");
+                templateName = android.getString("template");
+                if (templateName.endsWith(".zip"))
+                    templateVersion = templateName.substring(0, templateName.lastIndexOf("."));
+                templateText = android.optString("templateText", "你当前的模板不是最新版本("+templateVersion+")，点击确定下载最新的模板才能新建项目。");
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -311,21 +316,19 @@ public class MainActivity extends AppCompatActivity {
         Arrays.sort(files, (f1, f2)->Long.compare(f2.lastModified(), f1.lastModified()));
         if (files.length>0) currVersion = files[0].getName();
 
-        if (templateVersion == null) templateVersion = currVersion;
-        if (templateVersion == null) {
+        if (templateName == null) templateName = currVersion;
+        if (templateName == null) {
             showError("模板不存在！");
             return;
         }
 
-        final File zipFile = new File(templateDir, templateVersion);
+        final File zipFile = new File(templateDir, templateName);
         if (!zipFile.exists()) {
-            int index = templateVersion.lastIndexOf('.');
-            String versionName = index==-1?templateVersion:templateVersion.substring(0, index);
-            new AlertDialog.Builder(this).setTitle("错误")
-                .setMessage("你当前的模板不是最新版本("+versionName+")，点击确定下载最新的模板才能新建项目。")
+            new AlertDialog.Builder(this).setTitle("存在新模板更新："+templateVersion)
+                .setMessage(templateText)
                 .setCancelable(true).setPositiveButton("确定", (dialogInterface, i) -> {
 
-                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(DOMAIN+"/games/_client/"+templateVersion));
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(DOMAIN+"/games/_client/"+templateName));
 
                     request.allowScanningByMediaScanner();
                     request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
