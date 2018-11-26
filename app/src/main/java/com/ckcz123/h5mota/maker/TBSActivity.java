@@ -6,6 +6,8 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -14,10 +16,12 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
+import android.view.Display;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -58,9 +62,14 @@ public class TBSActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         activity=this;
 
+        // 0-竖屏；1-横屏
+        if (MainActivity.orientationMode == 1)
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+
         //webView=new WebView(this);
         //setContentView(webView, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
         setContentView(R.layout.activity_tbs);
+
 
         webView=findViewById(R.id.webview);
         progressBar=findViewById(R.id.progressBar);
@@ -324,7 +333,9 @@ public class TBSActivity extends AppCompatActivity {
         menu.clear();
         menu.add(Menu.NONE, 0, 0, "").setIcon(android.R.drawable.ic_menu_rotate).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_help).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 2, 2, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 2, 2, "").setIcon(android.R.drawable.ic_menu_always_landscape_portrait).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        if (MainActivity.orientationMode == 1)
+            menu.add(Menu.NONE, 3, 3, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         return true;
     }
 
@@ -333,7 +344,17 @@ public class TBSActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case 0: webView.reload(); break;
             case 1: loadUrl("https://h5mota.com/games/template/docs/", "查看文档"); break;
-            case 2: webView.loadUrl("about:blank");finish();break;
+            case 2: {
+                if (MainActivity.orientationMode == 0)
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                else setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
+                MainActivity.orientationMode = 1-MainActivity.orientationMode;
+                invalidateOptionsMenu();
+                break;
+                //webView.reload(); break;
+            }
+            case 3: webView.loadUrl("about:blank");finish();break;
+
         }
         return true;
     }

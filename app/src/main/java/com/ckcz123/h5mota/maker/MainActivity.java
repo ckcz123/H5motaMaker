@@ -52,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
     private String templateName;
     private String templateText;
 
+    public static int orientationMode = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,7 +67,10 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String name = items.get(i);
                 workingDirectory = name;
-                loadUrl(LOCAL+URLEncoder.encode(name, "utf-8")+"/editor-mobile.html", name);
+                String url = LOCAL + URLEncoder.encode(name, "utf-8");
+                if (orientationMode == 0) url+="/editor-mobile.html";
+                else url+="/editor.html";
+                loadUrl(url, name);
             }
             catch (Exception e) {
                 e.printStackTrace();
