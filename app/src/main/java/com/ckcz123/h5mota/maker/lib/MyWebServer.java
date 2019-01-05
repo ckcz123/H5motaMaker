@@ -35,7 +35,7 @@ public class MyWebServer extends SimpleWebServer{
         String path = session.getUri();
         if (session.getMethod() == Method.POST && path.startsWith("/") && mainActivity.workingDirectory!=null) {
 
-            if (path.startsWith("/readFile") || path.startsWith("/writeFile") || path.startsWith("/listFile")) {
+            if (path.startsWith("/readFile") || path.startsWith("/writeFile") || path.startsWith("/writeMultiFiles") || path.startsWith("/listFile")) {
                 try {
                     HashMap<String, String> map = new HashMap<>();
                     // String content = Utils.readStream(session.getInputStream());
@@ -49,6 +49,7 @@ public class MyWebServer extends SimpleWebServer{
                     }
                     if (path.startsWith("/readFile")) return readFile(map);
                     if (path.startsWith("/writeFile")) return writeFile(map);
+                    if (path.startsWith("/writeMultiFiles")) return writeMultiFiles(map);
                     if (path.startsWith("/listFile")) return listFile(map);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -91,6 +92,24 @@ public class MyWebServer extends SimpleWebServer{
                 bytes = content.getBytes("UTF-8");
             FileUtils.writeByteArrayToFile(file, bytes);
             return newFixedLengthResponse(Response.Status.OK, "text/plain", String.valueOf(bytes.length));
+        }
+        catch (Exception e) {
+            return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "");
+        }
+    }
+
+    private Response writeMultiFiles(HashMap<String, String> map) {
+        try {
+            String[] filenames = map.get("name").split(";"), contents = map.get("value").split(";");
+            long length = 0;
+            for (int i=0;i<filenames.length;i++) {
+                String filename = filenames[i], content = contents[i];
+                File file = new File(mainActivity.makerDir, mainActivity.workingDirectory+"/"+filename);
+                byte[] bytes = Base64.decode(content, Base64.DEFAULT);
+                FileUtils.writeByteArrayToFile(file, bytes);
+                length += bytes.length;
+            }
+            return newFixedLengthResponse(Response.Status.OK, "text/plain", String.valueOf(length));
         }
         catch (Exception e) {
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "");

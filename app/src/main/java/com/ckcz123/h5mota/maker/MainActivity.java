@@ -3,6 +3,7 @@ package com.ckcz123.h5mota.maker;
 import android.Manifest;
 import android.app.DownloadManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -22,7 +23,6 @@ import com.ckcz123.h5mota.maker.lib.CustomToast;
 import com.ckcz123.h5mota.maker.lib.HttpRequest;
 import com.ckcz123.h5mota.maker.lib.MyWebServer;
 import com.ckcz123.h5mota.maker.lib.Utils;
-import com.tencent.smtt.sdk.QbSdk;
 
 import org.json.JSONObject;
 
@@ -155,18 +155,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        QbSdk.initX5Environment(this, new QbSdk.PreInitCallback() {
-            @Override
-            public void onCoreInitFinished() {
-
-            }
-
-            @Override
-            public void onViewInitFinished(boolean b) {
-                Log.e("@@","加载内核是否成功:"+b);
-            }
-        });
-
         new Thread(() -> {
             try {
                 HttpRequest httpRequest=HttpRequest.get(DOMAIN+"/games/_client/")
@@ -183,11 +171,7 @@ public class MainActivity extends AppCompatActivity {
                                 .setMessage(android.getString("text")).setCancelable(true)
                                 .setPositiveButton("下载", (dialogInterface, i) -> {
                                     try {
-                                        Intent intent=new Intent(MainActivity.this, TBSActivity.class);
-                                        intent.putExtra("title", "版本更新");
-                                        intent.putExtra("url", android.getString("url"));
-                                        workingDirectory = null;
-                                        startActivity(intent);
+                                        loadUrl(android.getString("url"), "版本更新");
                                     }
                                     catch (Exception e) {
                                         e.printStackTrace();
@@ -378,25 +362,9 @@ public class MainActivity extends AppCompatActivity {
                 .setCancelable(true).setPositiveButton("确定",null).create().show();
     }
 
-    private void inputLink() {
-        final EditText editText = new EditText(this);
-        editText.setHint("请输入地址...");
-        new AlertDialog.Builder(this).setTitle("浏览网页")
-            .setView(editText).setPositiveButton("确定", (dialogInterface, i) -> {
-                String content = editText.getEditableText().toString();
-                if (!content.startsWith("http://") && !content.startsWith("https://"))
-                    content = "http://"+content;
-                Intent intent=new Intent(MainActivity.this, TBSActivity.class);
-                intent.putExtra("title", "浏览网页");
-                intent.putExtra("url", content);
-                workingDirectory = null;
-                startActivity(intent);
-            }).setNegativeButton("取消", null).setCancelable(true).create().show();
-    }
-
     public void loadUrl(String url, String title) {
         try {
-            Intent intent=new Intent(MainActivity.this, TBSActivity.class);
+            Intent intent=new Intent(MainActivity.this, WebActivity.class);
             intent.putExtra("title", title);
             intent.putExtra("url", url);
             startActivity(intent);
@@ -405,6 +373,22 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
             CustomToast.showErrorToast(this, "无法打开网页！");
         }
+    }
+
+    private void inputLink() {
+        final EditText editText = new EditText(this);
+        editText.setHint("请输入地址...");
+        new AlertDialog.Builder(this).setTitle("浏览网页")
+                .setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                String url = editText.getEditableText().toString();
+                if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                    url = "http://"+url;
+                }
+                loadUrl(url, "浏览网页");
+            }
+        }).setNegativeButton("取消", null).setCancelable(true).create().show();
     }
 
 }

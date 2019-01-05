@@ -4,22 +4,28 @@ android {
     compileSdkVersion 26
     defaultConfig {
         applicationId "com.ckcz123.h5mota.maker"
-        minSdkVersion 15
+        minSdkVersion 21
         targetSdkVersion 26
-        versionCode 12
-        versionName "1.6"
+        versionCode 14
+        versionName "1.7"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        ndk{abiFilters "armeabi"}
     }
     signingConfigs {
         debug {
             storeFile file("debug.keystore")
+        }
+        release {
+            storeFile file('release.keystore')
+            storePassword "h5mota"
+            keyAlias "h5mota"
+            keyPassword "h5mota"
         }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
@@ -37,9 +43,10 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation 'com.android.support:cardview-v7:26.1.0'
-    implementation files('libs/tbs.jar')
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     implementation 'org.nanohttpd:nanohttpd-webserver:2.3.1'
     implementation 'me.weyye.hipermission:library:1.0.7'
     implementation 'commons-io:commons-io:2.6'
+    //Bugly support
+    compile 'com.tencent.bugly:crashreport:latest.release'
 }

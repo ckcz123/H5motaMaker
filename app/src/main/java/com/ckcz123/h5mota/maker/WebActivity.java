@@ -7,48 +7,56 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
-import android.view.Display;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.ConsoleMessage;
+import android.webkit.DownloadListener;
+import android.webkit.JsPromptResult;
+import android.webkit.JsResult;
+import android.webkit.SslErrorHandler;
+import android.webkit.URLUtil;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.ckcz123.h5mota.maker.lib.CustomToast;
-import com.tencent.smtt.export.external.interfaces.JsPromptResult;
-import com.tencent.smtt.export.external.interfaces.JsResult;
-import com.tencent.smtt.export.external.interfaces.SslError;
-import com.tencent.smtt.export.external.interfaces.SslErrorHandler;
-import com.tencent.smtt.sdk.URLUtil;
-import com.tencent.smtt.sdk.ValueCallback;
-import com.tencent.smtt.sdk.WebChromeClient;
-import com.tencent.smtt.sdk.WebSettings;
-import com.tencent.smtt.sdk.WebView;
-import com.tencent.smtt.sdk.WebViewClient;
 
 import org.apache.commons.io.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
-public class TBSActivity extends AppCompatActivity {
+/**
+ * Created by castor_v_pollux on 2018/12/30.
+ */
+
+public class WebActivity extends AppCompatActivity {
 
     WebView webView;
-    TBSActivity activity;
     ProgressBar progressBar;
 
     private ValueCallback<Uri> mUploadMessage;
@@ -57,28 +65,26 @@ public class TBSActivity extends AppCompatActivity {
     public static final int JSINTERFACE_SELECT_FILE = 200;
     private final static int FILECHOOSER_RESULTCODE = 2;
 
+    private File LOG_FILE;
+    private SimpleDateFormat simpleDateFormat;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        activity=this;
+        setContentView(R.layout.activity_web);
 
-        // 0-竖屏；1-横屏
-        if (MainActivity.orientationMode == 1)
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-
-        //webView=new WebView(this);
-        //setContentView(webView, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
-        setContentView(R.layout.activity_tbs);
-
-
-        webView=findViewById(R.id.webview);
-        progressBar=findViewById(R.id.progressBar);
-
-        progressBar.setVisibility(View.VISIBLE);
+        LOG_FILE = new File(Environment.getExternalStorageDirectory()+"/H5motaMaker/", "log.txt");
+        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
         setTitle(getIntent().getStringExtra("title"));
 
-        final WebSettings webSettings=webView.getSettings();
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,  WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
+
+        webView = findViewById(R.id.webview);
+        progressBar = findViewById(R.id.progressBar);
+        progressBar.setVisibility(View.VISIBLE);
+
+        WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
         webSettings.setSupportZoom(true);
@@ -89,33 +95,39 @@ public class TBSActivity extends AppCompatActivity {
         webSettings.setAllowContentAccess(true);
         webSettings.setDefaultTextEncodingName("utf-8");
         webSettings.setDomStorageEnabled(true);
-        webSettings.setAppCacheEnabled(false);
-        webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webSettings.setMediaPlaybackRequiresUserGesture(false);
+        webSettings.setDatabaseEnabled(true);
+        webSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        webSettings.setLoadsImagesAutomatically(true);
+        webSettings.setAppCacheEnabled(true);
 
-        webView.addJavascriptInterface(new JSInterface(this, webView), "jsinterface");
+        webView.addJavascriptInterface(new JSInterface(this), "jsinterface");
 
         webView.setWebViewClient(new WebViewClient() {
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 webView.loadUrl(url);
                 return true;
             }
+
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 progressBar.setVisibility(View.VISIBLE);
             }
+
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 progressBar.setVisibility(View.GONE);
-                activity.setTitle(webView.getTitle());
+                setTitle(webView.getTitle());
             }
+
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
                 handler.proceed();
             }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
-            public boolean onJsAlert(WebView view, String url, String message, final JsResult result)  {
-                new AlertDialog.Builder(activity)
+            public boolean onJsAlert(WebView view, String url, String message, final JsResult result) {
+                new AlertDialog.Builder(WebActivity.this)
                         .setTitle("JsAlert")
                         .setMessage(message)
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -130,7 +142,7 @@ public class TBSActivity extends AppCompatActivity {
             }
 
             public boolean onJsConfirm(WebView view, String url, String message, final JsResult result) {
-                new AlertDialog.Builder(activity)
+                new AlertDialog.Builder(WebActivity.this)
                         .setTitle("Javascript发来的提示")
                         .setMessage(message)
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -149,10 +161,11 @@ public class TBSActivity extends AppCompatActivity {
                         .show();
                 return true;
             }
+
             public boolean onJsPrompt(WebView view, String url, String message, String defaultValue, final JsPromptResult result) {
-                final EditText et = new EditText(activity);
+                final EditText et = new EditText(WebActivity.this);
                 et.setText(defaultValue);
-                new AlertDialog.Builder(activity)
+                new AlertDialog.Builder(WebActivity.this)
                         .setTitle(message)
                         .setView(et)
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -172,36 +185,33 @@ public class TBSActivity extends AppCompatActivity {
 
                 return true;
             }
+
             public void openFileChooser(ValueCallback<Uri> uploadMsg) {
                 mUploadMessage = uploadMsg;
                 Intent i = new Intent(Intent.ACTION_GET_CONTENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
                 i.setType("*/*");
-                // startActivityForResult(Intent.createChooser(i, "File Browser"), FILECHOOSER_RESULTCODE);
                 startActivityForResult(i, FILECHOOSER_RESULTCODE);
             }
+
             public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture) {
                 openFileChooser(uploadMsg);
             }
+
             protected void openFileChooser(ValueCallback uploadMsg, String acceptType) {
                 openFileChooser(uploadMsg);
             }
 
-            public boolean onShowFileChooser(WebView mWebView, ValueCallback<Uri[]> filePathCallback, WebChromeClient.FileChooserParams fileChooserParams)
-            {
+            public boolean onShowFileChooser(WebView mWebView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 if (uploadMessage != null) {
                     uploadMessage.onReceiveValue(null);
                     uploadMessage = null;
                 }
-
                 uploadMessage = filePathCallback;
-
                 Intent intent = fileChooserParams.createIntent();
-                try
-                {
+                try {
                     startActivityForResult(intent, REQUEST_SELECT_FILE);
-                } catch (ActivityNotFoundException e)
-                {
+                } catch (ActivityNotFoundException e) {
                     uploadMessage = null;
                     return false;
                 }
@@ -212,42 +222,58 @@ public class TBSActivity extends AppCompatActivity {
                 progressBar.setProgress(progress);
             }
 
-        });
-
-        webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
-            try {
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-
-                Log.i("mimetype", mimetype);
-
-                request.setMimeType(mimetype);
-                request.allowScanningByMediaScanner();
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                String filename = URLUtil.guessFileName(url, contentDisposition, mimetype);
-                new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/").mkdirs();
-                File file = new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/" + filename);
-                if (file.exists()) file.delete();
-                request.setDestinationUri(Uri.fromFile(file));
-                request.setTitle("正在下载" + filename + "...");
-                request.setDescription("文件保存在" + file.getAbsolutePath());
-                DownloadManager downloadManager = (DownloadManager) activity.getSystemService(Context.DOWNLOAD_SERVICE);
-                downloadManager.enqueue(request);
-
-                CustomToast.showInfoToast(activity, "文件下载中，请在通知栏查看进度");
-            } catch (Exception e) {
-                if (url.startsWith("blob")) {
-                    CustomToast.showErrorToast(activity, "无法下载文件！");
-                    return;
+            public boolean onConsoleMessage(ConsoleMessage message) {
+                String msg = message.message();
+                if (msg.equals("[object Object]") || msg.equals("localForage supported!") || msg.equals("插件编写测试") || msg.equals("开始游戏"))
+                    return false;
+                ConsoleMessage.MessageLevel level = message.messageLevel();
+                if (level != ConsoleMessage.MessageLevel.LOG && level != ConsoleMessage.MessageLevel.ERROR)
+                    return false;
+                try (PrintWriter printWriter = new PrintWriter(new FileWriter(LOG_FILE, true))){
+                    String s = String.format("[%s] {%s, Line %s, Source %s} %s\r\n", simpleDateFormat.format(new Date()),
+                            level.toString(), message.lineNumber(), message.sourceId(), msg);
+                    printWriter.write(s);
                 }
-                activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                catch (Exception e) {
+                    Log.i("Console", "error", e);
+                }
+                return false;
             }
         });
+        webView.setDownloadListener(new DownloadListener() {
+            public void onDownloadStart(String url, String userAgent,
+                                        String contentDisposition, String mimetype, long contentLength) {
+                try {
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                    Log.i("mimetype", mimetype);
 
+                    request.setMimeType(mimetype);
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    String filename = URLUtil.guessFileName(url, contentDisposition, mimetype);
+                    new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/").mkdirs();
+                    File file = new File(Environment.getExternalStorageDirectory() + "/H5motaMaker/" + filename);
+                    if (file.exists()) file.delete();
+                    request.setDestinationUri(Uri.fromFile(file));
+                    request.setTitle("正在下载" + filename + "...");
+                    request.setDescription("文件保存在" + file.getAbsolutePath());
+                    DownloadManager downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                    downloadManager.enqueue(request);
+
+                    CustomToast.showInfoToast(WebActivity.this, "文件下载中，请在通知栏查看进度");
+                } catch (Exception e) {
+                    if (url.startsWith("blob")) {
+                        CustomToast.showErrorToast(WebActivity.this, "无法下载文件！");
+                        return;
+                    }
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                }
+            }
+        });
         webView.loadUrl(getIntent().getStringExtra("url"));
     }
 
     double exittime=0;
-
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode==KeyEvent.KEYCODE_BACK) {
             if (webView.canGoBack()) {
@@ -272,8 +298,8 @@ public class TBSActivity extends AppCompatActivity {
 
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
-        if (resultCode==RESULT_OK) {
-            Uri result = intent == null? null: intent.getData();
+        if (resultCode == RESULT_OK) {
+            Uri result = intent == null ? null : intent.getData();
             switch (requestCode) {
                 case REQUEST_SELECT_FILE:
                     if (uploadMessage == null)
@@ -315,7 +341,7 @@ public class TBSActivity extends AppCompatActivity {
                         CustomToast.showErrorToast(this, "读取失败！");
                         e.printStackTrace();
                     }
-
+                    break;
             }
         }
     }
@@ -333,9 +359,7 @@ public class TBSActivity extends AppCompatActivity {
         menu.clear();
         menu.add(Menu.NONE, 0, 0, "").setIcon(android.R.drawable.ic_menu_rotate).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         menu.add(Menu.NONE, 1, 1, "").setIcon(android.R.drawable.ic_menu_help).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 2, 2, "").setIcon(android.R.drawable.ic_menu_always_landscape_portrait).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        if (MainActivity.orientationMode == 1)
-            menu.add(Menu.NONE, 3, 3, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menu.add(Menu.NONE, 2, 2, "").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         return true;
     }
 
@@ -344,24 +368,14 @@ public class TBSActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case 0: webView.reload(); break;
             case 1: loadUrl("https://h5mota.com/games/template/docs/", "查看文档"); break;
-            case 2: {
-                if (MainActivity.orientationMode == 0)
-                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-                else setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-                MainActivity.orientationMode = 1-MainActivity.orientationMode;
-                invalidateOptionsMenu();
-                break;
-                //webView.reload(); break;
-            }
-            case 3: webView.loadUrl("about:blank");finish();break;
-
+            case 2: webView.loadUrl("about:blank");finish();break;
         }
         return true;
     }
 
     public void loadUrl(String url, String title) {
         try {
-            Intent intent=new Intent(this, TBSActivity.class);
+            Intent intent=new Intent(this, getClass());
             intent.setFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             intent.putExtra("title", title);
             intent.putExtra("url", url);
