@@ -78,7 +78,7 @@ public class TBSActivity extends AppCompatActivity {
 
         setTitle(getIntent().getStringExtra("title"));
 
-        final WebSettings webSettings=webView.getSettings();
+        WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
         webSettings.setSupportZoom(true);
@@ -88,7 +88,11 @@ public class TBSActivity extends AppCompatActivity {
         webView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_INSET);
         webSettings.setAllowContentAccess(true);
         webSettings.setDefaultTextEncodingName("utf-8");
-        webSettings.setDomStorageEnabled(true);
+        webSettings.setDomStorageEnabled(false);
+        webSettings.setMediaPlaybackRequiresUserGesture(false);
+        webSettings.setDatabaseEnabled(true);
+        webSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        webSettings.setLoadsImagesAutomatically(true);
         webSettings.setAppCacheEnabled(false);
         webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 

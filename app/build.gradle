@@ -6,8 +6,8 @@ android {
         applicationId "com.ckcz123.h5mota.maker"
         minSdkVersion 15
         targetSdkVersion 26
-        versionCode 12
-        versionName "1.6"
+        versionCode 14
+        versionName "1.7"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk{abiFilters "armeabi"}
     }
@@ -42,4 +42,6 @@ dependencies {
     implementation 'org.nanohttpd:nanohttpd-webserver:2.3.1'
     implementation 'me.weyye.hipermission:library:1.0.7'
     implementation 'commons-io:commons-io:2.6'
+    //Bugly support
+    implementation 'com.tencent.bugly:crashreport:latest.release'
 }
