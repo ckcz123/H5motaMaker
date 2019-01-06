@@ -6,7 +6,7 @@ android {
         applicationId "com.ckcz123.h5mota.maker"
         minSdkVersion 21
         targetSdkVersion 26
-        versionCode 14
+        versionCode 15
         versionName "1.7"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
@@ -48,5 +48,5 @@ dependencies {
     implementation 'me.weyye.hipermission:library:1.0.7'
     implementation 'commons-io:commons-io:2.6'
     //Bugly support
-    compile 'com.tencent.bugly:crashreport:latest.release'
+    implementation 'com.tencent.bugly:crashreport:latest.release'
 }
