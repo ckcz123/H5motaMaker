@@ -6,8 +6,8 @@ android {
         applicationId "com.ckcz123.h5mota.maker"
         minSdkVersion 15
         targetSdkVersion 26
-        versionCode 14
-        versionName "1.7"
+        versionCode 18
+        versionName "1.8"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk{abiFilters "armeabi"}
     }
@@ -15,11 +15,18 @@ android {
         debug {
             storeFile file("debug.keystore")
         }
+        release {
+            storeFile file('release.keystore')
+            storePassword "h5mota"
+            keyAlias "h5mota"
+            keyPassword "h5mota"
+        }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {

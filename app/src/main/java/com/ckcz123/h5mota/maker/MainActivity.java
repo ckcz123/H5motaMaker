@@ -183,11 +183,7 @@ public class MainActivity extends AppCompatActivity {
                                 .setMessage(android.getString("text")).setCancelable(true)
                                 .setPositiveButton("下载", (dialogInterface, i) -> {
                                     try {
-                                        Intent intent=new Intent(MainActivity.this, TBSActivity.class);
-                                        intent.putExtra("title", "版本更新");
-                                        intent.putExtra("url", android.getString("url"));
-                                        workingDirectory = null;
-                                        startActivity(intent);
+                                        loadUrl(android.getString("url"), "版本更新");
                                     }
                                     catch (Exception e) {
                                         e.printStackTrace();
@@ -219,6 +215,8 @@ public class MainActivity extends AppCompatActivity {
         templateDir = new File(makerDir, ".templates");
         if (!templateDir.exists() && !templateDir.mkdirs())
             CustomToast.showErrorToast(this, "无法创建目录");
+
+        new File(makerDir, "log.txt").delete();
 
         try {
             if (simpleWebServer!=null) {
