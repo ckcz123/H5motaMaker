@@ -1,5 +1,6 @@
 package com.ckcz123.h5mota.maker;
 
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -40,21 +41,15 @@ public class DownloadReceiver extends BroadcastReceiver {
                     File file = new File(uri.getPath());
                     String name = file.getName();
 
+                    CustomToast.showSuccessToast(context, "下载成功！\n" + name + " 已经成功下载到 SD卡/H5motaMaker 目录下！", 5000);
+
+                    /*
                     if (name.endsWith(".zip")) {
-                        /*
-
-                        if (Utils.unzip(file, file.getParentFile())) {
-                            CustomToast.showSuccessToast(context, "已成功下载并解压到SD卡的H5mota目录下。", 2500);
-                        }
-                        else {
-                            CustomToast.showInfoToast(context, "已成功下载文件，但是未能成功解压，请手动进行解压操作。", 2500);
-                        }
-
-                        */
                         CustomToast.showSuccessToast(context, "下载成功！");
                     }
                     else if (name.endsWith(".apk")) {
                         // auto install
+
                         try {
 
                             Intent install = new Intent(Intent.ACTION_VIEW);
@@ -75,7 +70,10 @@ public class DownloadReceiver extends BroadcastReceiver {
                             Log.e("Install Error", e.getMessage(), e);
                             CustomToast.showErrorToast(context, "无法自动安装更新包，请手动进行安装。");
                         }
+
                     }
+                    */
+
                 }
             }
         }

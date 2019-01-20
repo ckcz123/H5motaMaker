@@ -23,17 +23,14 @@ import fi.iki.elonen.SimpleWebServer;
 
 public class MyWebServer extends SimpleWebServer{
 
-    private MainActivity mainActivity;
-
-    public MyWebServer(MainActivity mainActivity, String host, int port, File wwwroot, boolean quiet) {
+    public MyWebServer(String host, int port, File wwwroot, boolean quiet) {
         super(host, port, wwwroot, quiet);
-        this.mainActivity = mainActivity;
     }
 
     @Override
     public Response serve(IHTTPSession session) {
         String path = session.getUri();
-        if (session.getMethod() == Method.POST && path.startsWith("/") && mainActivity.workingDirectory!=null) {
+        if (session.getMethod() == Method.POST && path.startsWith("/") && MainActivity.workingDirectory!=null) {
 
             if (path.startsWith("/readFile") || path.startsWith("/writeFile") || path.startsWith("/writeMultiFiles") || path.startsWith("/listFile")) {
                 try {
@@ -66,7 +63,7 @@ public class MyWebServer extends SimpleWebServer{
             String type = map.get("type");
             if (type==null || !type.equals("base64")) type = "utf8";
             String filename = map.get("name");
-            File file = new File(mainActivity.makerDir, mainActivity.workingDirectory+"/"+filename);
+            File file = new File(MainActivity.makerDir, MainActivity.workingDirectory+"/"+filename);
             if (!file.exists())
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "");
             byte[] bytes = FileUtils.readFileToByteArray(file);
@@ -84,7 +81,7 @@ public class MyWebServer extends SimpleWebServer{
             String type = map.get("type");
             if (type==null || !type.equals("base64")) type = "utf8";
             String filename = map.get("name"), content = map.get("value");
-            File file = new File(mainActivity.makerDir, mainActivity.workingDirectory+"/"+filename);
+            File file = new File(MainActivity.makerDir, MainActivity.workingDirectory+"/"+filename);
             byte[] bytes;
             if ("base64".equals(type))
                 bytes = Base64.decode(content, Base64.DEFAULT);
@@ -104,7 +101,7 @@ public class MyWebServer extends SimpleWebServer{
             long length = 0;
             for (int i=0;i<filenames.length;i++) {
                 String filename = filenames[i], content = contents[i];
-                File file = new File(mainActivity.makerDir, mainActivity.workingDirectory+"/"+filename);
+                File file = new File(MainActivity.makerDir, MainActivity.workingDirectory+"/"+filename);
                 byte[] bytes = Base64.decode(content, Base64.DEFAULT);
                 FileUtils.writeByteArrayToFile(file, bytes);
                 length += bytes.length;
@@ -119,7 +116,7 @@ public class MyWebServer extends SimpleWebServer{
     private Response listFile(HashMap<String, String> map) {
         try {
             String filename = map.get("name");
-            File file = new File(mainActivity.makerDir, mainActivity.workingDirectory+"/"+filename);
+            File file = new File(MainActivity.makerDir, MainActivity.workingDirectory+"/"+filename);
             File[] files = file.listFiles();
             StringBuilder builder = new StringBuilder("[");
             for (int i=0;i<files.length;i++) {

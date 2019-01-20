@@ -27,8 +27,8 @@ import me.weyye.hipermission.HiPermission;
 
 public class JSInterface {
 
-    Activity activity;
-    WebView webView;
+    private Activity activity;
+    private WebView webView;
 
     public JSInterface(Activity activity, WebView webView) {
         this.activity = activity;
@@ -89,7 +89,7 @@ public class JSInterface {
 
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
-        activity.startActivityForResult(Intent.createChooser(intent, "请选择文件"), TBSActivity.JSINTERFACE_SELECT_FILE);
+        activity.startActivityForResult(Intent.createChooser(intent, "请选择文件"), MakerActivity.JSINTERFACE_SELECT_FILE);
 
     }
 

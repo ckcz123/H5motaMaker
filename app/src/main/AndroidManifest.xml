@@ -23,8 +23,8 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".TBSActivity" android:windowSoftInputMode="adjustPan">
-        </activity>
+        <activity android:name=".MakerActivity" android:windowSoftInputMode="adjustPan"></activity>
+        <activity android:name=".WebActivity" android:windowSoftInputMode="adjustPan"></activity>
         <receiver android:name="com.ckcz123.h5mota.maker.DownloadReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.DOWNLOAD_COMPLETE"/>

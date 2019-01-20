@@ -7,21 +7,19 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Base64;
 import android.util.Log;
-import android.view.Display;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -51,10 +49,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-public class TBSActivity extends AppCompatActivity {
+public class MakerActivity extends AppCompatActivity {
 
     WebView webView;
-    TBSActivity activity;
+    MakerActivity activity;
     ProgressBar progressBar;
 
     private ValueCallback<Uri> mUploadMessage;
@@ -64,6 +62,7 @@ public class TBSActivity extends AppCompatActivity {
     private final static int FILECHOOSER_RESULTCODE = 2;
 
     private File LOG_FILE;
+    private String log_file_name;
     private SimpleDateFormat simpleDateFormat;
 
     @Override
@@ -75,20 +74,28 @@ public class TBSActivity extends AppCompatActivity {
         if (MainActivity.orientationMode == 1)
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 
-        File log_dir = new File(Environment.getExternalStorageDirectory()+"/H5motaMaker/", ".logs");
+        File log_dir = new File(MainActivity.makerDir, ".logs");
         if (!log_dir.exists() && !log_dir.mkdirs()) {
             LOG_FILE = null;
         }
         else {
-            LOG_FILE = new File(log_dir, "log-"+
-                    new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date())+".txt");
+            log_file_name = "log-"+
+                    new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date())+".txt";
+            LOG_FILE = new File(log_dir, log_file_name);
+            try {
+                LOG_FILE.createNewFile();
+            }
+            catch (Exception e) {
+                LOG_FILE = null;
+                log_file_name = null;
+            }
         }
         simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
 
         //webView=new WebView(this);
         //setContentView(webView, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
-        setContentView(R.layout.activity_tbs);
+        setContentView(R.layout.activity_webview);
 
 
         webView=findViewById(R.id.webview);
@@ -259,9 +266,6 @@ public class TBSActivity extends AppCompatActivity {
         webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             try {
                 DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-
-                Log.i("mimetype", mimetype);
-
                 request.setMimeType(mimetype);
                 request.allowScanningByMediaScanner();
                 request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
@@ -330,15 +334,13 @@ public class TBSActivity extends AppCompatActivity {
                     break;
                 case JSINTERFACE_SELECT_FILE:
                     if (result == null) break;
-                    Log.i("Path", result.getPath());
                     ContentResolver contentResolver = getContentResolver();
                     String type = contentResolver.getType(result);
-                    Log.i("Type", type);
                     if (type!=null && type.startsWith("image")) {
                         try (InputStream inputStream = getContentResolver().openInputStream(result)) {
                             byte[] bytes = IOUtils.toByteArray(inputStream);
                             String base64 = Base64.encodeToString(bytes, Base64.DEFAULT);
-                            webView.loadUrl("javascript:core.readFileContent('data:"+type+";base64," + base64 +"')");
+                            webView.evaluateJavascript("core.readFileContent('data:"+type+";base64," + base64 +"')", null);
                         }
                         catch (Exception e) {
                             CustomToast.showErrorToast(this, "读取失败！");
@@ -351,7 +353,7 @@ public class TBSActivity extends AppCompatActivity {
                         String line;
                         StringBuilder builder = new StringBuilder();
                         while ((line=reader.readLine())!=null) builder.append(line);
-                        webView.loadUrl("javascript:core.readFileContent('" + builder.toString().replace('\'', '\"') +"')");
+                        webView.evaluateJavascript("core.readFileContent('" + builder.toString().replace('\'', '\"') +"')", null);
                     }
                     catch (Exception e) {
                         CustomToast.showErrorToast(this, "读取失败！");
@@ -373,10 +375,16 @@ public class TBSActivity extends AppCompatActivity {
 
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
-        menu.add(Menu.NONE, 0, 0, "刷新").setIcon(android.R.drawable.ic_menu_rotate).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 1, 1, "帮助").setIcon(android.R.drawable.ic_menu_help).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 2, 2, "旋转").setIcon(android.R.drawable.ic_menu_always_landscape_portrait).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 3, 3, "退出").setIcon(android.R.drawable.ic_menu_close_clear_cancel).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
+        menu.add(Menu.NONE, 0, 0, "刷新").setIcon(R.drawable.refresh).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 1, 1, "上张地图").setIcon(R.drawable.down).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 2, 2, "下张地图").setIcon(R.drawable.up).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 3, 3, "控制台").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 4, 4, "重置地图").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 5, 5, "查看日志").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 6, 6, "打开目录").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 7, 7, "帮助文档").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 8, 8, "横竖屏切换").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 9, 9, "退出").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
         return true;
     }
 
@@ -384,33 +392,107 @@ public class TBSActivity extends AppCompatActivity {
         super.onOptionsItemSelected(item);
         switch (item.getItemId()) {
             case 0: webView.reload(); break;
-            case 1: loadUrl("https://h5mota.com/games/template/docs/", "查看文档"); break;
+            case 1: {
+                String url = webView.getUrl();
+                if (!url.endsWith("/editor.html") && !url.endsWith("/editor-mobile.html")) {
+                    CustomToast.showErrorToast(this, "只有在造塔器页面才能切换地图！");
+                    break;
+                }
+                webView.evaluateJavascript("try { document.getElementById('mid').onmousewheel(" +
+                        "    {preventDefault:function(){}, detail: -1}" +
+                        ")} catch (e) {}", null);
+                break;
+            }
             case 2: {
+                String url = webView.getUrl();
+                if (!url.endsWith("/editor.html") && !url.endsWith("/editor-mobile.html")) {
+                    CustomToast.showErrorToast(this, "只有在造塔器页面才能切换地图！");
+                    break;
+                }
+                webView.evaluateJavascript("try { document.getElementById('mid').onmousewheel(" +
+                        "    {preventDefault:function(){}, detail: 1}" +
+                        ")} catch (e) {}", null);
+                break;
+            }
+            case 3: {
+                final EditText editText = new EditText(this);
+                editText.setHint("请输入控制台命令...");
+                new AlertDialog.Builder(this).setTitle("控制台命令")
+                        .setView(editText).setPositiveButton("确定", (dialogInterface, i) -> {
+                    String content = editText.getEditableText().toString();
+                    webView.evaluateJavascript(content, new ValueCallback<String>() {
+                        @Override
+                        public void onReceiveValue(String s) {
+                            if (s==null) s = "null";
+                            s+="\n\n可以通过查看日志来获得更详细的控制台输出信息。";
+                            new AlertDialog.Builder(MakerActivity.this).setTitle("执行结果")
+                                    .setMessage(s).setPositiveButton("确定",null)
+                                    .setCancelable(true).create().show();
+                        }
+                    });
+                }).setNegativeButton("取消", null).setCancelable(true).create().show();
+                break;
+            }
+            case 4: {
+                String url = webView.getUrl();
+                if (!url.endsWith("/index.html")) {
+                    CustomToast.showErrorToast(this, "只有在游戏内才能重置地图！");
+                    break;
+                }
+                new AlertDialog.Builder(this).setTitle("确认重置？")
+                        .setMessage("你想调用 core.resetMap() 来重置当前楼层地图吗？")
+                        .setCancelable(true)
+                        .setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                webView.evaluateJavascript("try { core.resetMap(); } catch (e) {} ", null);
+                            }
+                        }).setNegativeButton("取消", null).create().show();
+                break;
+            }
+            case 5: {
+                File file = new File(MainActivity.makerDir, ".logs");
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
+                if (intent.resolveActivityInfo(getPackageManager(), 0) != null)
+                    startActivity(intent);
+                else CustomToast.showErrorToast(this, "无法打开目录！");
+                break;
+            }
+            case 6: {
+                File file = new File(MainActivity.makerDir, MainActivity.workingDirectory);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
+                if (intent.resolveActivityInfo(getPackageManager(), 0) != null)
+                    startActivity(intent);
+                else CustomToast.showErrorToast(this, "无法打开目录！");
+                break;
+            }
+            case 7: loadDocuments(); break;
+            case 8: {
                 if (MainActivity.orientationMode == 0)
                     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                 else setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
                 MainActivity.orientationMode = 1-MainActivity.orientationMode;
-                invalidateOptionsMenu();
                 break;
-                //webView.reload(); break;
             }
-            case 3: webView.loadUrl("about:blank");finish();break;
-
+            case 9: webView.loadUrl("about:blank");finish();break;
         }
         return true;
     }
 
-    public void loadUrl(String url, String title) {
+    public void loadDocuments() {
         try {
-            Intent intent=new Intent(this, TBSActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-            intent.putExtra("title", title);
-            intent.putExtra("url", url);
+            Intent intent = new Intent(this, WebActivity.class);
+            if (Build.VERSION.SDK_INT >= 21)
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+            intent.putExtra("title", "查看文档");
+            intent.putExtra("url", "https://h5mota.com/games/template/docs/");
             startActivity(intent);
         }
         catch (Exception e) {
             e.printStackTrace();
-            CustomToast.showErrorToast(this, "无法打开网页！");
+            CustomToast.showErrorToast(this, "无法查看文档！");
         }
     }
 

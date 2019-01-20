@@ -5,6 +5,7 @@ import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AlertDialog;
@@ -43,8 +44,8 @@ public class MainActivity extends AppCompatActivity {
     public static final String LOCAL = "http://127.0.0.1:1056/";
 
     SimpleWebServer simpleWebServer;
-    public String workingDirectory;
-    public File makerDir;
+    public static String workingDirectory;
+    public static File makerDir;
     public File templateDir;
     private ListView listView;
     private List<String> items;
@@ -64,17 +65,7 @@ public class MainActivity extends AppCompatActivity {
         listView = findViewById(R.id.listView);
         listView.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, items));
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
-            try {
-                String name = items.get(i);
-                workingDirectory = name;
-                String url = LOCAL + URLEncoder.encode(name, "utf-8");
-                if (orientationMode == 0) url+="/editor-mobile.html";
-                else url+="/editor.html";
-                loadUrl(url, name);
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
+            loadTower(items.get(i));
         });
         listView.setOnItemLongClickListener((adapterView, view, i, l) -> {
             String name = items.get(i);
@@ -222,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
             if (simpleWebServer!=null) {
                 simpleWebServer.stop();
             }
-            simpleWebServer = new MyWebServer(this, "127.0.0.1", 1056, makerDir, true);
+            simpleWebServer = new MyWebServer("127.0.0.1", 1056, makerDir, true);
             simpleWebServer.start();
         }
         catch (Exception e) {
@@ -384,17 +375,31 @@ public class MainActivity extends AppCompatActivity {
                 String content = editText.getEditableText().toString();
                 if (!content.startsWith("http://") && !content.startsWith("https://"))
                     content = "http://"+content;
-                Intent intent=new Intent(MainActivity.this, TBSActivity.class);
-                intent.putExtra("title", "浏览网页");
-                intent.putExtra("url", content);
-                workingDirectory = null;
-                startActivity(intent);
+                loadUrl(content, "浏览网页");
             }).setNegativeButton("取消", null).setCancelable(true).create().show();
+    }
+
+    public void loadTower(String name) {
+        try {
+            workingDirectory = name;
+            String url = LOCAL + URLEncoder.encode(name, "utf-8");
+            if (orientationMode == 0) url+="/editor-mobile.html";
+            else url+="/editor.html";
+            Intent intent = new Intent(this, MakerActivity.class);
+            intent.putExtra("url", url);
+            intent.putExtra("title", name);
+            startActivity(intent);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void loadUrl(String url, String title) {
         try {
-            Intent intent=new Intent(MainActivity.this, TBSActivity.class);
+            Intent intent=new Intent(this, WebActivity.class);
+            if (Build.VERSION.SDK_INT >= 21)
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
             intent.putExtra("title", title);
             intent.putExtra("url", url);
             startActivity(intent);
