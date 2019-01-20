@@ -45,6 +45,7 @@ import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -378,13 +379,15 @@ public class MakerActivity extends AppCompatActivity {
         menu.add(Menu.NONE, 0, 0, "刷新").setIcon(R.drawable.refresh).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         menu.add(Menu.NONE, 1, 1, "上张地图").setIcon(R.drawable.down).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
         menu.add(Menu.NONE, 2, 2, "下张地图").setIcon(R.drawable.up).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-        menu.add(Menu.NONE, 3, 3, "控制台").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
-        menu.add(Menu.NONE, 4, 4, "重置地图").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
-        menu.add(Menu.NONE, 5, 5, "查看日志").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
-        menu.add(Menu.NONE, 6, 6, "打开目录").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
-        menu.add(Menu.NONE, 7, 7, "帮助文档").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
-        menu.add(Menu.NONE, 8, 8, "横竖屏切换").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
-        menu.add(Menu.NONE, 9, 9, "退出").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        if (MainActivity.orientationMode == 1)
+            menu.add(Menu.NONE, 3, 3, "进入游戏").setIcon(R.drawable.play).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        menu.add(Menu.NONE, 4, 4, "控制台").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 5, 5, "重置地图").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 6, 6, "查看日志").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 7, 7, "打开目录").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 8, 8, "帮助文档").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 9, 9, "横竖屏切换").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+        menu.add(Menu.NONE, 10, 10, "退出").setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
         return true;
     }
 
@@ -415,6 +418,15 @@ public class MakerActivity extends AppCompatActivity {
                 break;
             }
             case 3: {
+                try {
+                    webView.loadUrl(MainActivity.LOCAL + URLEncoder.encode(MainActivity.workingDirectory, "utf-8")+"/index.html");
+                }
+                catch (Exception e) {
+                    Log.i("Error", "error", e);
+                }
+                break;
+            }
+            case 4: {
                 final EditText editText = new EditText(this);
                 editText.setHint("请输入控制台命令...");
                 new AlertDialog.Builder(this).setTitle("控制台命令")
@@ -433,7 +445,7 @@ public class MakerActivity extends AppCompatActivity {
                 }).setNegativeButton("取消", null).setCancelable(true).create().show();
                 break;
             }
-            case 4: {
+            case 5: {
                 String url = webView.getUrl();
                 if (!url.endsWith("/index.html")) {
                     CustomToast.showErrorToast(this, "只有在游戏内才能重置地图！");
@@ -450,7 +462,7 @@ public class MakerActivity extends AppCompatActivity {
                         }).setNegativeButton("取消", null).create().show();
                 break;
             }
-            case 5: {
+            case 6: {
                 File file = new File(MainActivity.makerDir, ".logs");
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
@@ -459,7 +471,7 @@ public class MakerActivity extends AppCompatActivity {
                 else CustomToast.showErrorToast(this, "无法打开目录！");
                 break;
             }
-            case 6: {
+            case 7: {
                 File file = new File(MainActivity.makerDir, MainActivity.workingDirectory);
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
@@ -468,15 +480,15 @@ public class MakerActivity extends AppCompatActivity {
                 else CustomToast.showErrorToast(this, "无法打开目录！");
                 break;
             }
-            case 7: loadDocuments(); break;
-            case 8: {
+            case 8: loadDocuments(); break;
+            case 9: {
                 if (MainActivity.orientationMode == 0)
                     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                 else setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
                 MainActivity.orientationMode = 1-MainActivity.orientationMode;
                 break;
             }
-            case 9: webView.loadUrl("about:blank");finish();break;
+            case 10: webView.loadUrl("about:blank");finish();break;
         }
         return true;
     }
