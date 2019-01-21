@@ -41,13 +41,7 @@ public class DownloadReceiver extends BroadcastReceiver {
                     File file = new File(uri.getPath());
                     String name = file.getName();
 
-                    CustomToast.showSuccessToast(context, "下载成功！\n" + name + " 已经成功下载到 SD卡/H5motaMaker 目录下！", 5000);
-
-                    /*
-                    if (name.endsWith(".zip")) {
-                        CustomToast.showSuccessToast(context, "下载成功！");
-                    }
-                    else if (name.endsWith(".apk")) {
+                    if (name.endsWith(".apk")) {
                         // auto install
 
                         try {
@@ -56,7 +50,7 @@ public class DownloadReceiver extends BroadcastReceiver {
                             install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
                             if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.N) {
-                                install.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                                 Uri contentUri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID+".fileprovider", file);
                                 install.setDataAndType(contentUri, "application/vnd.android.package-archive");
                             }
@@ -72,7 +66,10 @@ public class DownloadReceiver extends BroadcastReceiver {
                         }
 
                     }
-                    */
+                    else {
+                        CustomToast.showSuccessToast(context, name + " 已经成功下载到 SD卡/H5motaMaker 目录下！", 6000);
+                    }
+
 
                 }
             }

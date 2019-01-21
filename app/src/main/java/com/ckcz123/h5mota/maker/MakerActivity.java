@@ -340,7 +340,7 @@ public class MakerActivity extends AppCompatActivity {
                     if (type!=null && type.startsWith("image")) {
                         try (InputStream inputStream = getContentResolver().openInputStream(result)) {
                             byte[] bytes = IOUtils.toByteArray(inputStream);
-                            String base64 = Base64.encodeToString(bytes, Base64.DEFAULT);
+                            String base64 = Base64.encodeToString(bytes, Base64.NO_PADDING | Base64.NO_WRAP);
                             webView.evaluateJavascript("core.readFileContent('data:"+type+";base64," + base64 +"')", null);
                         }
                         catch (Exception e) {
@@ -468,7 +468,7 @@ public class MakerActivity extends AppCompatActivity {
                 intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
                 if (intent.resolveActivityInfo(getPackageManager(), 0) != null)
                     startActivity(intent);
-                else CustomToast.showErrorToast(this, "无法打开目录！");
+                else CustomToast.showErrorToast(this, "无法打开目录！\n建议下载安装ES文件浏览器来对SD卡进行管理。");
                 break;
             }
             case 7: {
@@ -477,7 +477,7 @@ public class MakerActivity extends AppCompatActivity {
                 intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
                 if (intent.resolveActivityInfo(getPackageManager(), 0) != null)
                     startActivity(intent);
-                else CustomToast.showErrorToast(this, "无法打开目录！");
+                else CustomToast.showErrorToast(this, "无法打开目录！\n建议下载安装ES文件浏览器对SD卡进行管理。");
                 break;
             }
             case 8: loadDocuments(); break;

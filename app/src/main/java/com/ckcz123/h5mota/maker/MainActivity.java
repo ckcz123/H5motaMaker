@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
                             intent.setDataAndType(Uri.parse(file.getAbsolutePath()), "resource/folder");
                             if (intent.resolveActivityInfo(getPackageManager(), 0) != null)
                                 startActivity(intent);
-                            else CustomToast.showErrorToast(MainActivity.this, "无法打开目录");
+                            else CustomToast.showErrorToast(MainActivity.this, "无法打开目录！\n建议下载安装ES文件浏览器来对SD卡进行管理。");
                         }
                         else if (i1 ==1) {
                             final EditText editText = new EditText(MainActivity.this);
